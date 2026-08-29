@@ -5,24 +5,11 @@ FROM oven/bun:1.2.8 AS deps
 
 WORKDIR /app
 
-# Copy workspace configuration
+# Copy workspace configuration and package sources required for workspace:* resolution
 COPY package.json bun.lock ./
+COPY packages ./packages
 
-# Copy package.json files for all packages (exclude local db; use published @trycompai/db)
-COPY packages/kv/package.json ./packages/kv/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/email/package.json ./packages/email/
-COPY packages/integration-platform/package.json ./packages/integration-platform/
-COPY packages/integrations/package.json ./packages/integrations/
-COPY packages/utils/package.json ./packages/utils/
-COPY packages/tsconfig/package.json ./packages/tsconfig/
-COPY packages/analytics/package.json ./packages/analytics/
-COPY packages/auth/package.json ./packages/auth/
-COPY packages/billing/package.json ./packages/billing/
-COPY packages/company/package.json ./packages/company/
-COPY packages/db/package.json ./packages/db/
-
-# Copy app package.json files
+# Copy app package.json files only (full app sources copied in builder stages)
 COPY apps/app/package.json ./apps/app/
 COPY apps/portal/package.json ./apps/portal/
 
