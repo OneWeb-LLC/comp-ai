@@ -82,7 +82,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 RUN cd apps/app && SKIP_ENV_VALIDATION=true bun run db:getschema \
     && bunx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
-    && node ./node_modules/next/dist/bin/next build --webpack
+    && node ../../node_modules/next/dist/bin/next build --webpack
 
 # =============================================================================
 # STAGE 4: App Production
@@ -130,7 +130,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 RUN cd apps/portal && SKIP_ENV_VALIDATION=true \
     bunx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
-    && node ./node_modules/next/dist/bin/next build --webpack
+    && node ../../node_modules/next/dist/bin/next build --webpack
 
 # =============================================================================
 # STAGE 6: Portal Production
