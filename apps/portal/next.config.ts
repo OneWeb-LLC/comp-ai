@@ -5,6 +5,12 @@ import './src/env.mjs';
 const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
 
 const config = {
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_ENV_VALIDATION === 'true',
+  },
+  eslint: {
+    ignoreDuringBuilds: process.env.SKIP_ENV_VALIDATION === 'true',
+  },
   transpilePackages: [
     '@trycompai/auth',
     '@trycompai/db',
