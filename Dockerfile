@@ -76,7 +76,8 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
-    NODE_OPTIONS=--max_old_space_size=4096 \
+    GENERATE_SOURCEMAP=false \
+    NODE_OPTIONS=--max_old_space_size=2560 \
     SKIP_ENV_VALIDATION=true
 
 # Build the app (Webpack — Turbopack fails under Bun in Docker)
@@ -125,7 +126,8 @@ ARG NEXT_PUBLIC_BETTER_AUTH_URL
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
-    NODE_OPTIONS=--max_old_space_size=4096 \
+    GENERATE_SOURCEMAP=false \
+    NODE_OPTIONS=--max_old_space_size=2560 \
     SKIP_ENV_VALIDATION=true
 
 # Build the portal (Webpack — Turbopack fails under Bun in Docker)
