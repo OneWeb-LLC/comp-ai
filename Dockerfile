@@ -6,7 +6,7 @@ FROM oven/bun:1.2.8 AS deps
 WORKDIR /app
 
 # Copy workspace configuration and package sources required for workspace:* resolution
-COPY package.json bun.lock ./
+COPY package.json bun.lock turbo.json ./
 COPY packages ./packages
 
 # Copy app package.json files only (full app sources copied in builder stages)
@@ -54,13 +54,12 @@ COPY apps/app ./apps/app
 # Bring in node_modules for build and prisma prebuild
 COPY --from=deps /app/node_modules ./node_modules
 
-# Pre-combine schemas and generate the Prisma client into
-# node_modules/@prisma/client. The deps stage ran `bun install` with
-# `--ignore-scripts` so packages/db's postinstall was skipped; we run
-# it explicitly here so `next build` can resolve the generated runtime
-# + types when it imports @prisma/client.
-RUN cd packages/db && node scripts/combine-schemas.js \
-                   && node scripts/generate-prisma-client-js.js
+# Build workspace packages (Next.js resolves workspace:* via dist/ exports).
+# Turbo also runs packages/db build (Prisma client + combined schema).
+RUN bunx turbo run build --filter=@trycompai/app^...
+
+# Sync Prisma schema fragments for app prisma generate during build:docker
+RUN cd apps/app && bun run db:getschema
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
@@ -111,9 +110,11 @@ COPY apps/portal ./apps/portal
 # Bring in node_modules for build and prisma prebuild
 COPY --from=deps /app/node_modules ./node_modules
 
-# Pre-combine schemas for portal build
-RUN cd packages/db && node scripts/combine-schemas.js
-RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema.prisma
+# Build workspace packages (Next.js resolves workspace:* via dist/ exports).
+RUN bunx turbo run build --filter=@trycompai/portal^...
+
+# Use combined schema from @trycompai/db build for portal prisma generate
+RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema/schema.prisma
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
