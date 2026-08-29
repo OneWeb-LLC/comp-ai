@@ -5,20 +5,11 @@ FROM oven/bun:1.2.8 AS deps
 
 WORKDIR /app
 
-# Copy workspace configuration
-COPY package.json bun.lock ./
+# Copy workspace configuration and package sources required for workspace:* resolution
+COPY package.json bun.lock turbo.json ./
+COPY packages ./packages
 
-# Copy package.json files for all packages (exclude local db; use published @trycompai/db)
-COPY packages/kv/package.json ./packages/kv/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/email/package.json ./packages/email/
-COPY packages/integration-platform/package.json ./packages/integration-platform/
-COPY packages/integrations/package.json ./packages/integrations/
-COPY packages/utils/package.json ./packages/utils/
-COPY packages/tsconfig/package.json ./packages/tsconfig/
-COPY packages/analytics/package.json ./packages/analytics/
-
-# Copy app package.json files
+# Copy app package.json files only (full app sources copied in builder stages)
 COPY apps/app/package.json ./apps/app/
 COPY apps/portal/package.json ./apps/portal/
 
@@ -63,13 +54,12 @@ COPY apps/app ./apps/app
 # Bring in node_modules for build and prisma prebuild
 COPY --from=deps /app/node_modules ./node_modules
 
-# Pre-combine schemas and generate the Prisma client into
-# node_modules/@prisma/client. The deps stage ran `bun install` with
-# `--ignore-scripts` so packages/db's postinstall was skipped; we run
-# it explicitly here so `next build` can resolve the generated runtime
-# + types when it imports @prisma/client.
-RUN cd packages/db && node scripts/combine-schemas.js \
-                   && node scripts/generate-prisma-client-js.js
+# Build workspace packages (Next.js resolves workspace:* via dist/ exports).
+# Turbo also runs packages/db build (Prisma client + combined schema).
+RUN bunx turbo run build --filter=@trycompai/app^...
+
+# Sync Prisma schema fragments for app prisma generate during build:docker
+RUN cd apps/app && bun run db:getschema
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
@@ -88,8 +78,11 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_OUTPUT_STANDALONE=true \
     NODE_OPTIONS=--max_old_space_size=6144
 
-# Build the app
-RUN cd apps/app && SKIP_ENV_VALIDATION=true bun run build:docker
+# Build the app (Webpack — Turbopack fails under Bun in Docker)
+RUN cd apps/app && SKIP_ENV_VALIDATION=true bun run db:getschema \
+    && bunx prisma generate --schema=prisma/schema \
+    && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
+    && node ./node_modules/next/dist/bin/next build --webpack
 
 # =============================================================================
 # STAGE 4: App Production
@@ -120,9 +113,11 @@ COPY apps/portal ./apps/portal
 # Bring in node_modules for build and prisma prebuild
 COPY --from=deps /app/node_modules ./node_modules
 
-# Pre-combine schemas for portal build
-RUN cd packages/db && node scripts/combine-schemas.js
-RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema.prisma
+# Build workspace packages (Next.js resolves workspace:* via dist/ exports).
+RUN bunx turbo run build --filter=@trycompai/portal^...
+
+# Use combined schema from @trycompai/db build for portal prisma generate
+RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema/schema.prisma
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
@@ -131,8 +126,11 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_OUTPUT_STANDALONE=true \
     NODE_OPTIONS=--max_old_space_size=6144
 
-# Build the portal
-RUN cd apps/portal && SKIP_ENV_VALIDATION=true bun run build:docker
+# Build the portal (Webpack — Turbopack fails under Bun in Docker)
+RUN cd apps/portal && SKIP_ENV_VALIDATION=true \
+    bunx prisma generate --schema=prisma/schema \
+    && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
+    && node ./node_modules/next/dist/bin/next build --webpack
 
 # =============================================================================
 # STAGE 6: Portal Production
