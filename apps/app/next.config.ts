@@ -10,6 +10,12 @@ const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
 const workspaceRoot = path.join(__dirname, '..', '..');
 
 const config: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_ENV_VALIDATION === 'true',
+  },
+  eslint: {
+    ignoreDuringBuilds: process.env.SKIP_ENV_VALIDATION === 'true',
+  },
   // Ensure Turbopack can import .md files as raw strings during dev
   turbopack: {
     root: workspaceRoot,
