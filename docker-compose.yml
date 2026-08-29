@@ -49,6 +49,9 @@ services:
       target: portal
       args:
         NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL_PORTAL}
+    depends_on:
+      app:
+        condition: service_started
     ports:
       - '3002:3000'
     env_file:
