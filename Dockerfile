@@ -23,11 +23,11 @@ FROM oven/bun:1.2.8 AS migrator
 
 WORKDIR /app
 
-# Copy local Prisma schema and migrations from workspace
+# Copy local Prisma schema, migrations, and seed scripts from workspace
 COPY packages/db/prisma ./packages/db/prisma
 
 # Create minimal package.json for Prisma runtime (also used by seeder)
-RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"^6.14.0","@prisma/client":"^6.14.0","@trycompai/db":"^1.3.4","zod":"^3.25.7"}}' > package.json
+RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"^6.14.0","@prisma/client":"^6.14.0","@trycompai/db":"^1.3.4","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^3.25.7"}}' > package.json
 
 # Install ONLY Prisma dependencies
 RUN bun install
