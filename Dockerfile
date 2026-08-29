@@ -118,8 +118,8 @@ COPY --from=deps /app/node_modules ./node_modules
 # Build workspace packages (Next.js resolves workspace:* via dist/ exports).
 RUN bunx turbo run build --filter=@trycompai/portal^...
 
-# Use combined schema from @trycompai/db build for portal prisma generate
-RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema/schema.prisma
+# Sync Prisma schema fragments for portal prisma generate
+RUN cd apps/portal && bun run db:getschema
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
