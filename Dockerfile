@@ -77,14 +77,14 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
     GENERATE_SOURCEMAP=false \
-    NODE_OPTIONS=--max_old_space_size=2560 \
+    NODE_OPTIONS=--max_old_space_size=3072 \
     SKIP_ENV_VALIDATION=true
 
-# Build the app (Webpack — Turbopack fails under Bun in Docker)
+# Build the app (Node + Turbopack — Bun lacks worker_threads stdout; webpack OOMs on CX33)
 RUN cd apps/app && bun run db:getschema \
     && bunx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
-    && node ../../node_modules/next/dist/bin/next build --webpack
+    && node ../../node_modules/next/dist/bin/next build
 
 # =============================================================================
 # STAGE 4: App Production
@@ -127,14 +127,14 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
     GENERATE_SOURCEMAP=false \
-    NODE_OPTIONS=--max_old_space_size=2560 \
+    NODE_OPTIONS=--max_old_space_size=3072 \
     SKIP_ENV_VALIDATION=true
 
-# Build the portal (Webpack — Turbopack fails under Bun in Docker)
+# Build the portal (Node + Turbopack)
 RUN cd apps/portal && \
     bunx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
-    && node ../../node_modules/next/dist/bin/next build --webpack
+    && node ../../node_modules/next/dist/bin/next build
 
 # =============================================================================
 # STAGE 6: Portal Production
