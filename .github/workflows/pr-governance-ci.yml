@@ -1,0 +1,25 @@
+name: PR Governance / Deterministic CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-ci:
+    if: >-
+      startsWith(github.head_ref, 'cursor/') ||
+      startsWith(github.head_ref, 'codex/') ||
+      startsWith(github.head_ref, 'ONE-') ||
+      contains(github.event.pull_request.labels.*.name, 'automated-pr')
+    runs-on: warp-ubuntu-latest-arm64-4x
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/dangerous-git-checkout
+      - uses: ./.github/actions/bun-install
+      - name: Typecheck
+        run: bun run type-check:ci

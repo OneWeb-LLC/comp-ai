@@ -29,6 +29,13 @@ Go to **Settings → Branches** in your GitHub repository and add a branch prote
    - E2E Tests - firefox (optional)
    - E2E Tests - webkit (optional)
 
+4. **One Web agent governance** (Cursor/agent PRs on qualified Tier 2 paths):
+   - `PR Governance / Deterministic CI`
+   - `Security Review`
+   - `oneweb/audit-gate` (independent Gate B audit bound to head SHA)
+
+Tier 3 agent changes additionally require explicit founder approval via the pending `oneweb/founder-approval` status check. See `.github/pr-governance/README.md`.
+
 ## Recommended Settings
 
 - [x] **Require status checks to pass before merging**
