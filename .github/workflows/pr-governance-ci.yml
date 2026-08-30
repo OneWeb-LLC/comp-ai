@@ -15,7 +15,9 @@ jobs:
       startsWith(github.head_ref, 'codex/') ||
       startsWith(github.head_ref, 'ONE-') ||
       contains(github.event.pull_request.labels.*.name, 'automated-pr')
-    runs-on: warp-ubuntu-latest-arm64-4x
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
         with:

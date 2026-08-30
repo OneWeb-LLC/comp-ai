@@ -2,6 +2,7 @@
 import { DEFAULT_CONFIG } from './config';
 import {
   auditDecisionToStatus,
+  INJECT_AUDIT_FAIL_LABEL,
   normalizeAuditResult,
   parseAuditDecisionText,
   resolveMockAuditDecision,
@@ -109,8 +110,9 @@ async function main(): Promise<void> {
 
   const retryCount = ledger.getRetryCount(env.prNumber, record.headSha);
   const prLabels = pr.labels.map((label) => label.name);
+  const injectFromBody = pr.body?.includes(INJECT_AUDIT_FAIL_LABEL) ?? false;
   const mockDecision = resolveMockAuditDecision({
-    prLabels,
+    prLabels: injectFromBody ? [...prLabels, INJECT_AUDIT_FAIL_LABEL] : prLabels,
     retryCount,
     mockEnabled: env.auditMock,
   });
