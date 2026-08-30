@@ -51,8 +51,6 @@ Each PR stores transition history under `.github/pr-governance/ledger/` (uploade
 bun test .github/pr-governance/governance.test.ts
 ```
 
-## Pilot notes (ONE-70)
+## Recovery evidence (PR #6)
 
-- Do **not** force-merge blocked PRs such as `#4`; they must pass their own deterministic CI, seeder/build verification, and Gate B evidence.
-- A new push invalidates prior audit results because Gate B binds to the current head SHA.
-- Copilot/security review comments remain advisory; merge eligibility is determined by required status checks and branch rulesets.
+Recovery loop validated on PR #6. See PR description for live workflow evidence.
