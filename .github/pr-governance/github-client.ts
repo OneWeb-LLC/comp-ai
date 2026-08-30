@@ -66,11 +66,21 @@ export function createGitHubClient({ token, owner, repo }: GitHubClientOptions) 
     },
 
     async markReadyForReview(prNumber: number): Promise<void> {
+      const nodeId = await this.getPullRequestNodeId(prNumber);
       await githubRequest({
         token,
-        url: `${base}/pulls/${prNumber}`,
-        method: 'PATCH',
-        body: { draft: false },
+        url: 'https://api.github.com/graphql',
+        method: 'POST',
+        body: {
+          query: `
+            mutation MarkPullRequestReadyForReview($pullRequestId: ID!) {
+              markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
+                pullRequest { isDraft }
+              }
+            }
+          `,
+          variables: { pullRequestId: nodeId },
+        },
       });
     },
 
