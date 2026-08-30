@@ -4,6 +4,7 @@ import {
   auditDecisionToStatus,
   normalizeAuditResult,
   parseAuditDecisionText,
+  resolveMockAuditDecision,
   runClaudeAudit,
 } from './audit-decision';
 import { buildAuditPrompt, fetchPullRequestDiff } from './audit-packet';
@@ -17,7 +18,8 @@ interface AuditGateEnv {
   owner: string;
   repo: string;
   prNumber: number;
-  anthropicApiKey: string;
+  anthropicApiKey?: string;
+  auditMock: boolean;
   linearApiKey?: string;
   runUrl?: string;
 }
@@ -28,9 +30,10 @@ function readEnv(): AuditGateEnv {
   const repoFull = process.env.GITHUB_REPOSITORY;
   const prNumberRaw = process.env.PR_NUMBER;
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const auditMock = process.env.GOVERNANCE_AUDIT_MOCK === '1' || !anthropicApiKey;
 
-  if (!githubToken || !owner || !repoFull || !prNumberRaw || !anthropicApiKey) {
-    throw new Error('Missing GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, or ANTHROPIC_API_KEY');
+  if (!githubToken || !owner || !repoFull || !prNumberRaw) {
+    throw new Error('Missing GITHUB_TOKEN, GITHUB_REPOSITORY, or PR_NUMBER');
   }
 
   const [, repo] = repoFull.split('/');
@@ -40,6 +43,7 @@ function readEnv(): AuditGateEnv {
     repo,
     prNumber: Number(prNumberRaw),
     anthropicApiKey,
+    auditMock,
     linearApiKey: process.env.LINEAR_API_KEY,
     runUrl: process.env.GITHUB_RUN_URL,
   };
@@ -104,7 +108,17 @@ async function main(): Promise<void> {
   });
 
   const retryCount = ledger.getRetryCount(env.prNumber, record.headSha);
-  const rawText = await runClaudeAudit({ apiKey: env.anthropicApiKey, prompt });
+  const prLabels = pr.labels.map((label) => label.name);
+  const mockDecision = resolveMockAuditDecision({
+    prLabels,
+    retryCount,
+    mockEnabled: env.auditMock,
+  });
+  const rawText = await runClaudeAudit({
+    apiKey: env.anthropicApiKey ?? 'mock',
+    prompt,
+    mockDecision,
+  });
   const audit = normalizeAuditResult({
     raw: parseAuditDecisionText(rawText),
     headSha: record.headSha,

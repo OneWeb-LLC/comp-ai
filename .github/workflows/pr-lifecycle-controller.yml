@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   lifecycle:
+    name: PR Governance / Lifecycle Controller
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +63,7 @@ jobs:
             echo "passed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: ./.github/actions/bun-install
+      - uses: ./.github/actions/governance-setup
         if: steps.pr.outputs.number != ''
 
       - name: Run lifecycle controller

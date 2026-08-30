@@ -48,4 +48,4 @@ runs:
       shell: bash
       run: |
         bun install
-        bun prisma generate
+        bun run db:generate

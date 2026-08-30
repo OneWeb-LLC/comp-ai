@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   deterministic-ci:
+    name: PR Governance / Deterministic CI
     if: >-
       startsWith(github.head_ref, 'cursor/') ||
       startsWith(github.head_ref, 'codex/') ||

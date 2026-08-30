@@ -1,5 +1,7 @@
 import type { AuditDecision, AuditFinding, AuditResult, RiskTier } from './types';
 
+export const INJECT_AUDIT_FAIL_LABEL = 'oneweb:inject-audit-fail';
+
 interface RawAuditDecision {
   decision?: string;
   summary?: string;
@@ -82,11 +84,33 @@ export async function runClaudeAudit({
   apiKey,
   prompt,
   model = 'claude-sonnet-4-20250514',
+  mockDecision,
 }: {
   apiKey: string;
   prompt: string;
   model?: string;
+  mockDecision?: AuditDecision;
 }): Promise<string> {
+  if (mockDecision) {
+    return JSON.stringify({
+      decision: mockDecision,
+      summary:
+        mockDecision === 'PASS'
+          ? 'Deterministic mock audit passed (GOVERNANCE_AUDIT_MOCK).'
+          : 'Injected recoverable audit failure (oneweb:inject-audit-fail).',
+      findings:
+        mockDecision === 'PASS'
+          ? []
+          : [
+              {
+                severity: 'medium',
+                title: 'Injected audit failure for recovery proof',
+                detail: 'Push remediation to rerun Gate B on the new head SHA.',
+              },
+            ],
+    });
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -117,6 +141,24 @@ export async function runClaudeAudit({
   }
 
   return textBlock.text;
+}
+
+export function resolveMockAuditDecision({
+  prLabels,
+  retryCount,
+  mockEnabled,
+}: {
+  prLabels: string[];
+  retryCount: number;
+  mockEnabled: boolean;
+}): AuditDecision | undefined {
+  if (!mockEnabled) {
+    return undefined;
+  }
+  if (prLabels.includes(INJECT_AUDIT_FAIL_LABEL) && retryCount === 0) {
+    return 'FAIL';
+  }
+  return 'PASS';
 }
 
 export function auditDecisionToStatus(decision: AuditDecision): 'success' | 'failure' | 'pending' {

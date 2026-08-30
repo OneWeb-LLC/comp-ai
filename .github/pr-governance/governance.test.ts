@@ -4,6 +4,7 @@ import {
   auditDecisionToStatus,
   normalizeAuditResult,
   parseAuditDecisionText,
+  resolveMockAuditDecision,
 } from './audit-decision';
 import {
   extractLinearIssueId,
@@ -101,6 +102,23 @@ describe('audit-decision', () => {
     });
     expect(audit.decision).toBe('ESCALATE');
     expect(auditDecisionToStatus(audit.decision)).toBe('pending');
+  });
+
+  it('injects one recoverable audit failure when label present', () => {
+    expect(
+      resolveMockAuditDecision({
+        prLabels: ['oneweb:inject-audit-fail'],
+        retryCount: 0,
+        mockEnabled: true,
+      }),
+    ).toBe('FAIL');
+    expect(
+      resolveMockAuditDecision({
+        prLabels: ['oneweb:inject-audit-fail'],
+        retryCount: 1,
+        mockEnabled: true,
+      }),
+    ).toBe('PASS');
   });
 });
 

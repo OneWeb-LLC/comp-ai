@@ -36,6 +36,7 @@ Tier 3 additionally requires manual founder approval via `oneweb/founder-approva
 
 | Label | Effect |
 | --- | --- |
+| `oneweb:inject-audit-fail` | In mock/no-key mode, forces one recoverable Gate B FAIL before PASS |
 | `oneweb:wip` | Blocks draft → ready transition |
 | `oneweb:tier-3-hold` | Blocks auto-merge even if audit passes |
 | `oneweb:no-auto-merge` | Blocks auto-merge |

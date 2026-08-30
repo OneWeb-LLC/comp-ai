@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/bun-install
+      - uses: ./.github/actions/governance-setup
 
       - name: Record merge and publish verification status
         env:
