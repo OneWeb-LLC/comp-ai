@@ -43,7 +43,13 @@ async function githubRequest<T>({
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  const payload = (await response.json()) as T & { errors?: Array<{ message: string }> };
+  if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+    const messages = payload.errors.map((entry) => entry.message).join('; ');
+    throw new Error(`GitHub GraphQL error: ${messages}`);
+  }
+
+  return payload as T;
 }
 
 export function createGitHubClient({ token, owner, repo }: GitHubClientOptions) {
