@@ -25,4 +25,4 @@ jobs:
       - uses: ./.github/actions/dangerous-git-checkout
       - uses: ./.github/actions/bun-install
       - name: Typecheck
-        run: bun run type-check:ci
+        run: bun run typecheck:ci
