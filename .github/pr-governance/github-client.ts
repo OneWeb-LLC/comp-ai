@@ -187,7 +187,7 @@ export function createGitHubClient({ token, owner, repo }: GitHubClientOptions) 
           query: `
             mutation DisableAutoMerge($pullRequestId: ID!) {
               disablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId }) {
-                pullRequest { autoMergeEnabled }
+                clientMutationId
               }
             }
           `,

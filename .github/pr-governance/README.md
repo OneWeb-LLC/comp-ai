@@ -21,6 +21,7 @@ Autonomous audit-to-merge handoff for Cursor/agent pull requests.
 | `GITHUB_TOKEN` | Provided by Actions; needs `pull-requests: write` and `statuses: write` on lifecycle/audit workflows |
 | `ANTHROPIC_API_KEY` | Independent Gate B Claude audit |
 | `LINEAR_API_KEY` | Structured findings and merge evidence on linked Linear issues |
+| `GOVERNANCE_GITHUB_TOKEN` (optional) | PAT with `enablePullRequestAutoMerge` when default `GITHUB_TOKEN` is integration-scoped read-only |
 
 ## Branch protection
 
