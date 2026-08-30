@@ -14,9 +14,11 @@ permissions:
   contents: read
   pull-requests: write
   statuses: write
+  actions: write
 
 jobs:
   gate-b-audit:
+    name: PR Governance / Gate B Audit
     if: >-
       github.event_name == 'workflow_dispatch' ||
       !github.event.pull_request.draft

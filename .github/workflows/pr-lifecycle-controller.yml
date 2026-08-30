@@ -21,6 +21,7 @@ permissions:
   pull-requests: write
   statuses: write
   checks: read
+  actions: write
 
 jobs:
   lifecycle:
