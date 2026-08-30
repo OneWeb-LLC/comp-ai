@@ -99,7 +99,7 @@ export function createGitHubClient({ token, owner, repo }: GitHubClientOptions) 
           query: `
             mutation EnableAutoMerge($pullRequestId: ID!) {
               enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: SQUASH }) {
-                pullRequest { autoMergeEnabled }
+                clientMutationId
               }
             }
           `,
