@@ -30,7 +30,7 @@ COPY packages/db/src/client.ts packages/db/src/ssl-config.ts ./packages/db/src/
 COPY packages/db/src/scripts/backfill-framework-versions.ts ./packages/db/src/scripts/
 
 # Prisma 7 requires Node 22.12+; oven/bun ships an older Node for preinstall checks.
-RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"7.6.0","@prisma/client":"7.6.0","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^4.3.6","tsx":"^4.19.0"}}' > package.json
+RUN echo '{"name":"migrator","dependencies":{"prisma":"7.6.0","@prisma/client":"7.6.0","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^4.3.6","tsx":"^4.19.0"}}' > package.json
 
 RUN npm install --omit=dev
 
