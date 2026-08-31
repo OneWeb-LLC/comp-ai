@@ -82,7 +82,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 
 # Build the app (Node + Turbopack — Bun lacks worker_threads stdout; webpack OOMs on CX33)
 RUN cd apps/app && bun run db:getschema \
-    && bunx prisma generate --schema=prisma/schema \
+    && npx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
     && node ../../node_modules/next/dist/bin/next build
 
@@ -132,7 +132,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 
 # Build the portal (Node + Turbopack)
 RUN cd apps/portal && \
-    bunx prisma generate --schema=prisma/schema \
+    npx prisma generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
     && node ../../node_modules/next/dist/bin/next build
 
