@@ -11,6 +11,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
+    extra_hosts:
+      - 'localhost:host-gateway'
     env_file:
       - packages/db/.env
     # Supabase pooler (:6543) rejects DDL; migrate deploy needs the direct URL.
@@ -21,6 +23,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
+    extra_hosts:
+      - 'localhost:host-gateway'
     env_file:
       - packages/db/.env
     command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
@@ -32,13 +36,19 @@ services:
       target: app
       args:
         NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+    extra_hosts:
+      - 'localhost:host-gateway'
     ports:
       - '3000:3000'
     env_file:
       - apps/app/.env
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          "node -e \"fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -51,6 +61,8 @@ services:
       target: portal
       args:
         NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL_PORTAL}
+    extra_hosts:
+      - 'localhost:host-gateway'
     depends_on:
       app:
         condition: service_started
@@ -60,7 +72,11 @@ services:
       - apps/portal/.env
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/ || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          "node -e \"fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
