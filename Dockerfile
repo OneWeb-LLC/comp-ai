@@ -17,28 +17,38 @@ COPY apps/portal/package.json ./apps/portal/
 RUN PRISMA_SKIP_POSTINSTALL_GENERATE=true bun install --ignore-scripts
 
 # =============================================================================
-# STAGE 2: Ultra-Minimal Migrator - Only Prisma
+# STAGE 2: Ultra-Minimal Migrator - local Prisma 7 schema + migrations
 # =============================================================================
-FROM oven/bun:1.2.8 AS migrator
+FROM node:22-alpine AS migrator
 
 WORKDIR /app
 
-# Copy local Prisma schema and migrations from workspace
+# Copy local Prisma schema, migrations, seed scripts, and schema combiner
 COPY packages/db/prisma ./packages/db/prisma
+COPY packages/db/scripts/build-dist-schema.js ./packages/db/scripts/build-dist-schema.js
+COPY packages/db/src/client.ts packages/db/src/ssl-config.ts ./packages/db/src/
+COPY packages/db/src/scripts/backfill-framework-versions.ts ./packages/db/src/scripts/
 
-# Create minimal package.json for Prisma runtime (also used by seeder)
-RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"^6.14.0","@prisma/client":"^6.14.0","@trycompai/db":"^1.3.4","zod":"^3.25.7"}}' > package.json
+# Prisma 7 requires Node 22.12+; oven/bun ships an older Node for preinstall checks.
+RUN echo '{"name":"migrator","dependencies":{"prisma":"7.6.0","@prisma/client":"7.6.0","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^4.3.6","tsx":"^4.19.0"}}' > package.json
 
-# Install ONLY Prisma dependencies
-RUN bun install
+RUN npm install --omit=dev
 
-# Ensure Prisma can find migrations relative to the published schema path
-# We copy the local migrations into the published package's dist directory
-RUN cp -R packages/db/prisma/migrations node_modules/@trycompai/db/dist/
+# Flatten prisma/schema/*.prisma into packages/db/dist/schema.prisma
+RUN node packages/db/scripts/build-dist-schema.js \
+    && cp -R packages/db/prisma/migrations packages/db/dist/migrations
 
-# Run migrations against the combined schema published by @trycompai/db
-RUN echo "Running migrations against @trycompai/db combined schema"
-CMD ["bunx", "prisma", "migrate", "deploy", "--schema=node_modules/@trycompai/db/dist/schema.prisma"]
+# Prisma 7 reads the datasource URL from prisma.config.* (not the flattened schema).
+RUN printf '%s\n' \
+  'const { defineConfig } = require("prisma/config");' \
+  'module.exports = defineConfig({' \
+  '  schema: "packages/db/dist/schema.prisma",' \
+  '  migrations: { path: "packages/db/dist/migrations" },' \
+  '  datasource: { url: process.env.DATABASE_URL },' \
+  '});' \
+  > prisma.config.cjs
+
+CMD ["npx", "prisma", "migrate", "deploy"]
 
 # =============================================================================
 # STAGE 3: App Builder
@@ -82,7 +92,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 
 # Build the app (Node + Turbopack — Bun lacks worker_threads stdout; webpack OOMs on CX33)
 RUN cd apps/app && bun run db:getschema \
-    && bunx prisma generate --schema=prisma/schema \
+    && node ../../node_modules/prisma/build/index.js generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
     && node ../../node_modules/next/dist/bin/next build
 
@@ -132,7 +142,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
 
 # Build the portal (Node + Turbopack)
 RUN cd apps/portal && \
-    bunx prisma generate --schema=prisma/schema \
+    node ../../node_modules/prisma/build/index.js generate --schema=prisma/schema \
     && node ../../packages/db/scripts/fix-generated-extensions.js src/generated/prisma \
     && node ../../node_modules/next/dist/bin/next build
 

@@ -67,13 +67,18 @@ jobs:
 
       - name: Re-run lifecycle controller
         if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
+            // Dispatch on default branch so workflow_dispatch is always available
+            // (PR branches may predate governance workflow files).
+            const defaultBranch =
+              context.payload?.repository?.default_branch ?? 'main';
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'pr-lifecycle-controller.yml',
-              ref: context.payload.pull_request.head.ref,
+              ref: defaultBranch,
               inputs: { pr_number: String(context.payload.pull_request.number) },
             });
