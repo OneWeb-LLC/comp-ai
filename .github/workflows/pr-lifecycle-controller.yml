@@ -1,0 +1,86 @@
+name: PR Governance / Lifecycle Controller
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  workflow_run:
+    workflows:
+      - PR Governance / Deterministic CI
+      - PR Governance / Gate B Audit
+      - Security Review
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+  checks: read
+  actions: write
+
+jobs:
+  lifecycle:
+    name: PR Governance / Lifecycle Controller
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+          INPUT_PR: ${{ inputs.pr_number }}
+          WORKFLOW_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_NAME" = "workflow_run" ]; then
+            echo "number=$WORKFLOW_PR" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip when PR number unavailable
+        if: steps.pr.outputs.number == ''
+        run: echo "No PR number resolved; skipping."
+
+      - name: Check deterministic CI result
+        if: steps.pr.outputs.number != ''
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA=$(gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }} --jq .head.sha)
+          CONCLUSION=$(gh api repos/${{ github.repository }}/commits/$SHA/check-runs --jq '.check_runs[] | select(.name=="PR Governance / Deterministic CI") | .conclusion' | head -n1)
+          if [ "$CONCLUSION" = "success" ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/governance-setup
+        if: steps.pr.outputs.number != ''
+
+      - name: Run lifecycle controller
+        if: steps.pr.outputs.number != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          DETERMINISTIC_CI_PASSED: ${{ steps.ci.outputs.passed }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bun .github/pr-governance/lifecycle-controller.ts
+
+      - name: Upload run ledger
+        if: steps.pr.outputs.number != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-governance-ledger-${{ steps.pr.outputs.number }}
+          path: .github/pr-governance/ledger/
+          if-no-files-found: ignore

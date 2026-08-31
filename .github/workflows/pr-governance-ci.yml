@@ -1,0 +1,79 @@
+name: PR Governance / Deterministic CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  deterministic-ci:
+    name: PR Governance / Deterministic CI
+    if: >-
+      startsWith(github.head_ref, 'cursor/') ||
+      startsWith(github.head_ref, 'codex/') ||
+      startsWith(github.head_ref, 'ONE-') ||
+      contains(github.event.pull_request.labels.*.name, 'automated-pr')
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Detect governance-only diff
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mapfile -t CHANGED < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          if [ "${#CHANGED[@]}" -eq 0 ]; then
+            echo "governance_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          APP_OR_PACKAGE=0
+          for file in "${CHANGED[@]}"; do
+            case "$file" in
+              apps/*|packages/*) APP_OR_PACKAGE=$((APP_OR_PACKAGE + 1)) ;;
+            esac
+          done
+          if [ "$APP_OR_PACKAGE" -eq 0 ]; then
+            echo "governance_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "governance_only=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Changed files: ${CHANGED[*]}"
+
+      - uses: ./.github/actions/dangerous-git-checkout
+
+      - uses: ./.github/actions/bun-install
+        if: steps.scope.outputs.governance_only != 'true'
+
+      - uses: ./.github/actions/governance-setup
+        if: steps.scope.outputs.governance_only == 'true'
+
+      - name: Run governance unit tests
+        if: steps.scope.outputs.governance_only == 'true'
+        run: bun test ./.github/pr-governance/governance.test.ts
+
+      - name: Typecheck application code
+        if: steps.scope.outputs.governance_only != 'true'
+        run: bun run typecheck:ci
+
+      - name: Re-run lifecycle controller
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'pr-lifecycle-controller.yml',
+              ref: context.payload.pull_request.head.ref,
+              inputs: { pr_number: String(context.payload.pull_request.number) },
+            });

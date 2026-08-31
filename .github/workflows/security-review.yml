@@ -2,9 +2,9 @@ name: Security Review
 
 # Anthropic's official Claude security reviewer. Runs on every PR, analyzes only
 # the changed files (diff-aware), and posts inline comments with findings + fixes.
-# This is the authoritative gate; the local Claude Code hook + skill are the
-# fast dev-time layer. Prereq: add an ANTHROPIC_API_KEY repo secret (enabled for
-# Claude Code). Make this a required check via branch protection to block merges.
+# This is advisory evidence for Gate B; merge eligibility is determined by the
+# required oneweb/audit-gate status check, not this workflow alone.
+# Prereq: add an ANTHROPIC_API_KEY repo secret (enabled for Claude Code).
 
 on:
   pull_request:
@@ -15,21 +15,37 @@ permissions:
 
 jobs:
   security-review:
+    name: Security Review
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 2
-      # TODO: pin to a release SHA for supply-chain safety once a tag is chosen.
-      - uses: anthropics/claude-code-security-review@main
+
+      - name: Detect Anthropic API key
+        id: anthropic
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip advisory scan when API key unavailable
+        if: steps.anthropic.outputs.available != 'true'
+        run: |
+          echo "::notice::ANTHROPIC_API_KEY is not configured; skipping advisory Security Review."
+          echo "Gate B (oneweb/audit-gate) remains the required independent audit boundary."
+
+      - name: Run Claude security review
+        if: steps.anthropic.outputs.available == 'true'
+        uses: anthropics/claude-code-security-review@main
         with:
           comment-pr: true
           claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Review the latest diff on EVERY push to a PR — not just the first
-          # commit — so code added after the initial review is still checked.
           run-every-commit: true
-          # Repo-specific checks (tenant isolation, authz-vs-attribution, IDOR)
-          # layered on top of the default audit.
           custom-security-scan-instructions: .github/security-scan-instructions.md
           exclude-directories: packages/db/src/generated

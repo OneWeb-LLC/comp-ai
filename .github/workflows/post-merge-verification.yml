@@ -1,0 +1,26 @@
+name: PR Governance / Post-Merge Verification
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  post-merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/governance-setup
+
+      - name: Record merge and publish verification status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: bun .github/pr-governance/post-merge.ts

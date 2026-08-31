@@ -1,0 +1,73 @@
+name: PR Governance / Gate B Audit
+
+on:
+  pull_request:
+    types: [ready_for_review, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+  actions: write
+
+jobs:
+  gate-b-audit:
+    name: PR Governance / Gate B Audit
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "number=${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/governance-setup
+
+      - name: Run Gate B audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bun .github/pr-governance/audit-gate.ts
+
+      - name: Upload run ledger
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-gate-ledger-${{ steps.pr.outputs.number }}
+          path: .github/pr-governance/ledger/
+          if-no-files-found: ignore
+
+      - name: Re-run lifecycle controller
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = '${{ steps.pr.outputs.number }}';
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: Number(prNumber),
+            });
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'pr-lifecycle-controller.yml',
+              ref: pullRequest.head.ref,
+              inputs: { pr_number: prNumber },
+            });

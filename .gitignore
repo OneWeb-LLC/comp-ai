@@ -10,6 +10,7 @@ node_modules
 docs/superpowers/
 # testing
 coverage
+.github/pr-governance/ledger/
 
 # next.js
 .next/

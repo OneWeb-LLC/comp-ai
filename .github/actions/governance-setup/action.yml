@@ -1,0 +1,15 @@
+name: Governance setup
+description: Install Bun for PR governance scripts without full monorepo bootstrap
+inputs:
+  bun_version:
+    description: Bun version to install
+    required: false
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun_version }}
