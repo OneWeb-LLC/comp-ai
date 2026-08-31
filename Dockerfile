@@ -19,7 +19,7 @@ RUN PRISMA_SKIP_POSTINSTALL_GENERATE=true bun install --ignore-scripts
 # =============================================================================
 # STAGE 2: Ultra-Minimal Migrator - local Prisma 7 schema + migrations
 # =============================================================================
-FROM oven/bun:1.2.8 AS migrator
+FROM node:22-alpine AS migrator
 
 WORKDIR /app
 
@@ -29,16 +29,16 @@ COPY packages/db/scripts/build-dist-schema.js ./packages/db/scripts/build-dist-s
 COPY packages/db/src/client.ts packages/db/src/ssl-config.ts ./packages/db/src/
 COPY packages/db/src/scripts/backfill-framework-versions.ts ./packages/db/src/scripts/
 
-# Prisma 7 matches the repo; do not pull @trycompai/db from npm (stale schema).
-RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"7.6.0","@prisma/client":"7.6.0","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^4.3.6"}}' > package.json
+# Prisma 7 requires Node 22.12+; oven/bun ships an older Node for preinstall checks.
+RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"7.6.0","@prisma/client":"7.6.0","@prisma/adapter-pg":"7.6.0","pg":"^8.13.0","zod":"^4.3.6","tsx":"^4.19.0"}}' > package.json
 
-RUN bun install
+RUN npm install --omit=dev
 
 # Flatten prisma/schema/*.prisma into packages/db/dist/schema.prisma
 RUN node packages/db/scripts/build-dist-schema.js \
     && cp -R packages/db/prisma/migrations packages/db/dist/migrations
 
-CMD ["bunx", "prisma", "migrate", "deploy", "--schema=packages/db/dist/schema.prisma"]
+CMD ["npx", "prisma", "migrate", "deploy", "--schema=packages/db/dist/schema.prisma"]
 
 # =============================================================================
 # STAGE 3: App Builder
