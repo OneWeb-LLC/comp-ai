@@ -5,6 +5,15 @@ export type SslConfig =
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
+function isSslDisabledInUrl(connectionString: string): boolean {
+  try {
+    const mode = new URL(connectionString).searchParams.get('sslmode');
+    return mode === 'disable' || mode === 'allow';
+  } catch {
+    return false;
+  }
+}
+
 function isLocalhostUrl(connectionString: string): boolean {
   try {
     const { hostname } = new URL(connectionString);
@@ -21,7 +30,7 @@ export function resolveSslConfig(
   databaseUrl: string,
   env: Partial<NodeJS.ProcessEnv> = process.env,
 ): SslConfig {
-  if (isLocalhostUrl(databaseUrl)) return undefined;
+  if (isLocalhostUrl(databaseUrl) || isSslDisabledInUrl(databaseUrl)) return undefined;
   if (env.PRISMA_ALLOW_INSECURE_TLS === '1') return { rejectUnauthorized: false };
   // Verified TLS via Node's default trust store, which includes Amazon Root
   // CA 1 — where AWS RDS Proxy chains terminate. Hostname check is skipped
