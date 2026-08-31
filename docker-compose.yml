@@ -21,7 +21,7 @@ services:
       target: migrator
     env_file:
       - packages/db/.env
-    command: sh -lc "npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
+    command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
     logging: *default-logging
   app:
     build:

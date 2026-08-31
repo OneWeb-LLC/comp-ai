@@ -38,7 +38,8 @@ RUN npm install --omit=dev
 RUN node packages/db/scripts/build-dist-schema.js \
     && cp -R packages/db/prisma/migrations packages/db/dist/migrations
 
-CMD ["npx", "prisma", "migrate", "deploy", "--schema=packages/db/dist/schema.prisma"]
+# Prisma migrate requires a direct Postgres connection; Supabase pooler (:6543) rejects DDL.
+CMD ["sh", "-c", "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma migrate deploy --schema=packages/db/dist/schema.prisma"]
 
 # =============================================================================
 # STAGE 3: App Builder
