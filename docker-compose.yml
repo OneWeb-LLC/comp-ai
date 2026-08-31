@@ -13,14 +13,8 @@ services:
       target: migrator
     env_file:
       - packages/db/.env
-<<<<<<< HEAD
-    # Supabase pooler (:6543) rejects DDL; migrate deploy needs the direct URL.
-    command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma migrate deploy --schema=packages/db/dist/schema.prisma"
-=======
       - .env
-    # Do not override DATABASE_URL here — empty ${DIRECT_URL} at compose-parse time
-    # wipes env_file values. The migrator entrypoint resolves DIRECT_URL at runtime.
->>>>>>> adbaa31f1 (fix(docker): resolve DIRECT_URL at runtime, not compose parse)
+    # Entrypoint resolves DIRECT_URL at runtime (see Dockerfile CMD).
     logging: *default-logging
   seeder:
     build:
@@ -29,12 +23,8 @@ services:
       target: migrator
     env_file:
       - packages/db/.env
-<<<<<<< HEAD
-    command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
-=======
       - .env
     command: sh -lc "export DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
->>>>>>> adbaa31f1 (fix(docker): resolve DIRECT_URL at runtime, not compose parse)
     logging: *default-logging
   app:
     build:
