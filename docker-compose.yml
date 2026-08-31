@@ -16,7 +16,6 @@ services:
     # Supabase pooler (:6543) rejects DDL; migrate deploy needs the direct URL.
     environment:
       DATABASE_URL: ${DIRECT_URL}
-    restart: 'no'
     logging: *default-logging
   seeder:
     build:
@@ -27,11 +26,7 @@ services:
       - packages/db/.env
     environment:
       DATABASE_URL: ${DIRECT_URL}
-    depends_on:
-      migrator:
-        condition: service_completed_successfully
     command: sh -lc "npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
-    restart: 'no'
     logging: *default-logging
   app:
     build:
@@ -40,9 +35,6 @@ services:
       target: app
       args:
         NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-    depends_on:
-      seeder:
-        condition: service_completed_successfully
     ports:
       - '3000:3000'
     env_file:
