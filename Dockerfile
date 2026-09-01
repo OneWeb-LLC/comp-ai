@@ -48,7 +48,7 @@ RUN printf '%s\n' \
   '});' \
   > prisma.config.cjs
 
-CMD ["npx", "prisma", "migrate", "deploy"]
+CMD ["sh", "-c", "export DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; if [ -z \"$DATABASE_URL\" ]; then echo 'migrator: DATABASE_URL unset (need DIRECT_URL or DATABASE_URL in env)'; exit 1; fi; npx prisma migrate deploy"]
 
 # =============================================================================
 # STAGE 3: App Builder

@@ -15,8 +15,7 @@ services:
       - 'localhost:host-gateway'
     env_file:
       - packages/db/.env
-    # Supabase pooler (:6543) rejects DDL; migrate deploy needs the direct URL.
-    command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma migrate deploy --schema=packages/db/dist/schema.prisma"
+      - .env
     logging: *default-logging
   seeder:
     build:
@@ -27,7 +26,8 @@ services:
       - 'localhost:host-gateway'
     env_file:
       - packages/db/.env
-    command: sh -lc "DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
+      - .env
+    command: sh -lc "export DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; npx prisma generate --schema=packages/db/dist/schema.prisma && npx tsx packages/db/prisma/seed/seed.ts"
     logging: *default-logging
   app:
     build:
