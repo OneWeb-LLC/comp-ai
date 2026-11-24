@@ -31,6 +31,10 @@ flowchart LR
   API --> TRG
 ```
 
+## Phase 1 — Vercel only (API later)
+
+If the API host is undecided, see [phase-1-vercel-only.md](./phase-1-vercel-only.md). Builds can ship with `SKIP_ENV_VALIDATION`; login and data features wait until `NEXT_PUBLIC_API_URL` points at a real API.
+
 ## Vercel project setup
 
 Create **two** Vercel projects linked to `OneWeb-LLC/comp-ai`:
