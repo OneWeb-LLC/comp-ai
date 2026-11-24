@@ -1,3 +1,3 @@
-#!/bin/bash
-
-exit 1
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../scripts/vercel-monorepo-build.sh" "@trycompai/app"

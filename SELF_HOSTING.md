@@ -6,6 +6,7 @@ This file is a brief overview for Docker-based self-hosting.
 
 - [Docker Self-Hosting Guide](https://trycomp.ai/docs/self-hosting/docker)
 - [Environment Reference](https://trycomp.ai/docs/self-hosting/env-reference)
+- [Vercel + Supabase + Trigger.dev (Community Edition)](deploy/vercel/README.md) — ONE-10 Preview target; does not replace the Docker/Hetzner path until cutover is approved
 
 ### Quick Summary
 
