@@ -1,0 +1,58 @@
+# Preview-oriented NestJS API for Comp AI Community Edition.
+# Link this blueprint to OneWeb-LLC/comp-ai; do not replace the Hetzner/Coolify stack until cutover is approved.
+services:
+  - type: web
+    name: comp-ai-api-preview
+    runtime: docker
+    repo: https://github.com/OneWeb-LLC/comp-ai
+    branch: main
+    dockerfilePath: apps/api/Dockerfile.multistage
+    dockerContext: .
+    plan: starter
+    autoDeploy: true
+    previews:
+      generation: automatic
+    healthCheckPath: /v1/health
+    envVars:
+      - key: PORT
+        value: '3333'
+      - key: NODE_ENV
+        value: preview
+      - key: SELF_HOSTED
+        value: 'true'
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: TRIGGER_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AUTH_TRUSTED_ORIGINS
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: INTERNAL_API_TOKEN
+        sync: false
+      - key: SERVICE_TOKEN_TRIGGER
+        sync: false
+      - key: SERVICE_TOKEN_PORTAL
+        sync: false
+      - key: APP_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: APP_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: APP_AWS_REGION
+        sync: false
+      - key: APP_AWS_BUCKET_NAME
+        sync: false
+      - key: APP_AWS_ORG_ASSETS_BUCKET
+        sync: false
+      - key: APP_AWS_QUESTIONNAIRE_UPLOAD_BUCKET
+        sync: false
+      - key: APP_AWS_KNOWLEDGE_BASE_BUCKET
+        sync: false
