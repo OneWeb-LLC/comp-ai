@@ -31,6 +31,10 @@ flowchart LR
   API --> TRG
 ```
 
+## Phase 1 — Vercel only (API later)
+
+If the API host is undecided, see [phase-1-vercel-only.md](./phase-1-vercel-only.md). Builds can ship with `SKIP_ENV_VALIDATION`; login and data features wait until `NEXT_PUBLIC_API_URL` points at a real API.
+
 ## Vercel project setup
 
 Create **two** Vercel projects linked to `OneWeb-LLC/comp-ai`:
@@ -127,16 +131,30 @@ Record for Linear ONE-10:
 | Render API | Starter web service if used for Preview API |
 | Trigger.dev | Cloud free/starter tier limits; task runs metered by plan |
 
+## Preview status (2026-11-24)
+
+Projects exist on team `oweb`: `comp-ai-app` (root `apps/app`) and `comp-ai-portal` (root `apps/portal`). Phase 1 env names are set for Preview and Production: `SKIP_ENV_VALIDATION`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BETTER_AUTH_URL`, and on the app also `NEXT_PUBLIC_SELF_HOSTED` and `NEXT_PUBLIC_PORTAL_URL`. Values stay in the Vercel dashboard.
+
+The first Production deployments were created before those variables existed. Their stable aliases return HTTP 500 (`Invalid environment variables`) until a new deployment is created **after** the variables exist. Do not treat that as a code failure, and do not promote a new Production deployment without owner approval.
+
+Preview deployments of `14823573446883f63564f729b5e3bb67a719caf0` are Ready and serve the login shells:
+
+| App | Preview URL | Deployment |
+|-----|-------------|------------|
+| App | `https://comp-ai-app-git-cursor-vercel-phase1-doc-8826-oweb.vercel.app/auth` | `dpl_4g7aNVpU6iYQVGwFzRdAXTuFcq7M` |
+| Portal | `https://comp-ai-portal-git-cursor-vercel-phase1-doc-8826-oweb.vercel.app/auth` | `dpl_6gfwEDJ2YTvNhPGuVwT1SCuZ9FtT` |
+
+Both login pages returned HTTP 200 and stayed up after a browser reload. Vercel Authentication protects `*.vercel.app`, so anonymous visitors see the Vercel login wall. Submitting login, creating an organization, uploads, email, and AI flows stay blocked until an API host and authorized secrets exist. `NEXT_PUBLIC_API_URL` is still a placeholder.
+
 ## Owner actions (remaining blockers)
 
-1. Create / link Vercel projects (app + portal) and set Preview env vars ([env-vars.md](./env-vars.md)).
-2. Provide Supabase **non-production** `DATABASE_URL` (and `DIRECT_URL` if using pooler) via dashboard secrets.
-3. Deploy API (Render blueprint or attach API container on existing server); set `NEXT_PUBLIC_API_URL` on Vercel to match.
-4. Configure `AUTH_TRUSTED_ORIGINS` on the API for each Preview hostname set.
-5. Connect OAuth (Google/GitHub/Microsoft), Resend, S3, OpenAI (or gateway) in authorized dashboards.
-6. Create Trigger.dev projects + sync env; run `./scripts/trigger-deploy-cloud.sh`.
-7. Run migrations + optional seed on non-prod DB; execute validation checklist.
-8. Approve production cutover separately (DNS, Vercel Production, decommission Coolify) — **out of scope** until Preview evidence is accepted.
+1. Approve a Production redeploy of the same commit so the stable aliases pick up `SKIP_ENV_VALIDATION` and the public URLs. That is a Production deployment; it was not done here.
+2. Choose the API host. Then set `NEXT_PUBLIC_API_URL` on both projects and `AUTH_TRUSTED_ORIGINS` on the API.
+3. Provide a Supabase **non-production** `DATABASE_URL` (and `DIRECT_URL` if using the pooler). Connected accounts have no Comp AI database. Do not migrate `One OS` or any other production project.
+4. Connect Trigger.dev and run `./scripts/trigger-deploy-cloud.sh`. No Trigger.dev connection is available in this session.
+5. Add Resend, S3-compatible storage, OAuth, and an AI provider from authorized credentials. Remove `SKIP_ENV_VALIDATION` after real values are set.
+6. Run migrations and an optional seed only on that non-production database, then repeat the login, organization, upload, email, and AI checks.
+7. Approve DNS cutover and Coolify decommission separately. `compliance.oneaccess.one` and `trust.oneaccess.one` still point at `2.28.69.100` and were not changed.
 
 ## Related docs
 
